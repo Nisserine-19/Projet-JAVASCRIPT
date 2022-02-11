@@ -51,7 +51,7 @@ export default class Dude {
     );
 
     // follow the tank
-    let tank = scene.getMeshByName("heroTank");
+    let tank = scene.getMeshByName("tank");
     // let's compute the direction vector that goes from Dude to the tank
     let direction = tank.position.subtract(this.dudeMesh.position);
     let distance = direction.length(); // we take the vector that is not normalized, not the dir vector

@@ -52,29 +52,29 @@ function createScene() {
     let tank = createTank(scene);
 
     // second parameter is the target to follow
-    
+
 
     createLights(scene);
 
     createHeroDude(scene);
- 
-   return scene;
+
+    return scene;
 }
 
 function configureAssetManager(scene) {
     let assetsManager = new BABYLON.AssetsManager(scene);
 
-    assetsManager.onProgress = function(remainingCount, totalCount, lastFinishedTask) {
+    assetsManager.onProgress = function (remainingCount, totalCount, lastFinishedTask) {
         engine.loadingUIText = 'We are loading the scene. ' + remainingCount + ' out of ' + totalCount + ' items still need to be loaded.';
         console.log('We are loading the scene. ' + remainingCount + ' out of ' + totalCount + ' items still need to be loaded.');
     };
 
-    assetsManager.onFinish = function(tasks) {
+    assetsManager.onFinish = function (tasks) {
         let tank = scene.getMeshByName("tank")
         let followCamera = createFollowCamera(scene, tank);
-    scene.activeCamera = followCamera;
+        scene.activeCamera = followCamera;
 
-        engine.runRenderLoop(function() {
+        engine.runRenderLoop(function () {
             scene.toRender();
         });
     };
@@ -85,9 +85,9 @@ function configureAssetManager(scene) {
 }
 
 function createGround(scene) {
-    const groundOptions = { width:2000, height:2000, subdivisions:20, minHeight:0, maxHeight:100, onReady: onGroundCreated};
+    const groundOptions = { width: 2000, height: 2000, subdivisions: 20, minHeight: 0, maxHeight: 100, onReady: onGroundCreated };
     //scene is optional and defaults to the current scene
-    const ground = BABYLON.MeshBuilder.CreateGroundFromHeightMap("gdhm", 'images/hmap1.png', groundOptions, scene); 
+    const ground = BABYLON.MeshBuilder.CreateGroundFromHeightMap("gdhm", 'images/hmap1.png', groundOptions, scene);
 
     function onGroundCreated() {
         const groundMaterial = new BABYLON.StandardMaterial("groundMaterial", scene);
@@ -99,7 +99,7 @@ function createGround(scene) {
 
         // for physic engine
         ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground,
-            BABYLON.PhysicsImpostor.HeightmapImpostor, { mass: 0 }, scene);    
+            BABYLON.PhysicsImpostor.HeightmapImpostor, { mass: 0 }, scene);
     }
     return ground;
 }
@@ -114,7 +114,7 @@ function createFreeCamera(scene) {
     let camera = new BABYLON.FreeCamera("freeCamera", new BABYLON.Vector3(0, 50, 0), scene);
     camera.attachControl(canvas);
     // prevent camera to cross ground
-    camera.checkCollisions = true; 
+    camera.checkCollisions = true;
     // avoid flying with the camera
     camera.applyGravity = true;
 
@@ -135,32 +135,34 @@ function createFreeCamera(scene) {
 function createFollowCamera(scene, target) {
     let camera = new BABYLON.FollowCamera("tankFollowCamera", target.position, scene, target);
 
-    camera.radius = 300; // how far from the object to follow
-    //camera.radius = 40;
-	camera.heightOffset = 300; // how high above the object to place the camera
-    camera.heightOffset = 40;
-	camera.rotationOffset = 180; // the viewing angle
-	camera.cameraAcceleration = .2; // how fast to move
-	camera.maxCameraSpeed = 5; // speed limit
+    //camera.radius = 30; // how far from the object to follow
+    camera.radius = 60;
+    //camera.heightOffset = 300; // how high above the object to place the camera
+    camera.heightOffset = 20;
+    camera.rotationOffset = 180; // the viewing angle
+    camera.cameraAcceleration = .2; // how fast to move
+    camera.maxCameraSpeed = 5; // speed limit
 
     return camera;
 }
 
 let zMovement = 5;
 function createTank(scene) {
+    var meshTask = scene.assetManager.addMeshTask("tank", "", "models/", "tank.glb");
 
-    
-    var meshTask = scene.assetManager.addMeshTask("tank","", "models/", "tank.glb");
-
-    
     meshTask.onSuccess = function (task) {
         onTankImported(task.loadedMeshes, task.loadedParticleSystems, task.loadedSkeletons);
     }
+    meshTask.onError = function (error) {
+        console.log("ERROR " + error);
+    }
+
+    
     //let tank = new BABYLON.MeshBuilder.CreateBox("heroTank", {height:1, depth:6, width:6}, scene);
     //let tankMaterial = new BABYLON.StandardMaterial("tankMaterial", scene);
-   // tankMaterial.diffuseColor = new BABYLON.Color3.Red;
-   // tankMaterial.emissiveColor = new BABYLON.Color3.Blue;
-   // tank.material = tankMaterial;
+    // tankMaterial.diffuseColor = new BABYLON.Color3.Red;
+    // tankMaterial.emissiveColor = new BABYLON.Color3.Blue;
+    // tank.material = tankMaterial;
 
     // tank cannot be picked by rays, but tank will not be pickable by any ray from other
     // players.... !
@@ -168,191 +170,196 @@ function createTank(scene) {
     function onTankImported(newMeshes, particleSystems, skeletons) {
         let tank = newMeshes[0];
         tank.position = new BABYLON.Vector3(0, 0, 5);  // The original dud
-        tank.name="tank"
+        tank.name = "tank"
+ // scaling
+ tank.scaling = new BABYLON.Vector3(5, 5, 5);
 
-    // By default the box/tank is in 0, 0, 0, let's change that...
-    tank.position.y = 0.6;
-    tank.speed = 1;
-    tank.frontVector = new BABYLON.Vector3(0, 0, 1);
+        // By default the box/tank is in 0, 0, 0, let's change that...
+        tank.position.y = 0.6;
+        tank.speed = 1;
+        tank.frontVector = new BABYLON.Vector3(0, 0, 1);
 
-    tank.move = () => {
-                //tank.position.z += -1; // speed should be in unit/s, and depends on
-                                 // deltaTime !
+        tank.move = () => {
+            //tank.position.z += -1; // speed should be in unit/s, and depends on
+            // deltaTime !
 
-        // if we want to move while taking into account collision detections
-        // collision uses by default "ellipsoids"
+            // if we want to move while taking into account collision detections
+            // collision uses by default "ellipsoids"
 
-        let yMovement = 0;
-       
-        if (tank.position.y > 2) {
-            zMovement = 0;
-            yMovement = -2;
-        } 
-        //tank.moveWithCollisions(new BABYLON.Vector3(0, yMovement, zMovement));
+            let yMovement = 0;
 
-        if(inputStates.up) {
-            //tank.moveWithCollisions(new BABYLON.Vector3(0, 0, 1*tank.speed));
-            tank.moveWithCollisions(tank.frontVector.multiplyByFloats(tank.speed, tank.speed, tank.speed));
-        }    
-        if(inputStates.down) {
-            //tank.moveWithCollisions(new BABYLON.Vector3(0, 0, -1*tank.speed));
-            tank.moveWithCollisions(tank.frontVector.multiplyByFloats(-tank.speed, -tank.speed, -tank.speed));
+            if (tank.position.y > 2) {
+                zMovement = 0;
+                yMovement = -2;
+            }
+            //tank.moveWithCollisions(new BABYLON.Vector3(0, yMovement, zMovement));
 
-        }    
-        if(inputStates.left) {
-            //tank.moveWithCollisions(new BABYLON.Vector3(-1*tank.speed, 0, 0));
-            tank.rotation.y -= 0.02;
-            tank.frontVector = new BABYLON.Vector3(Math.sin(tank.rotation.y), 0, Math.cos(tank.rotation.y));
-        }    
-        if(inputStates.right) {
-            //tank.moveWithCollisions(new BABYLON.Vector3(1*tank.speed, 0, 0));
-            tank.rotation.y += 0.02;
-            tank.frontVector = new BABYLON.Vector3(Math.sin(tank.rotation.y), 0, Math.cos(tank.rotation.y));
+            if (inputStates.up) {
+                //tank.moveWithCollisions(new BABYLON.Vector3(0, 0, 1*tank.speed));
+                tank.moveWithCollisions(tank.frontVector.multiplyByFloats(tank.speed, tank.speed, tank.speed));
+            }
+            if (inputStates.down) {
+                //tank.moveWithCollisions(new BABYLON.Vector3(0, 0, -1*tank.speed));
+                tank.moveWithCollisions(tank.frontVector.multiplyByFloats(-tank.speed, -tank.speed, -tank.speed));
+
+            }
+            if (inputStates.left) {
+                //tank.moveWithCollisions(new BABYLON.Vector3(-1*tank.speed, 0, 0));
+                tank.rotation.y -= 0.02;
+                tank.frontVector = new BABYLON.Vector3(Math.sin(tank.rotation.y), 0, Math.cos(tank.rotation.y));
+            }
+            if (inputStates.right) {
+                //tank.moveWithCollisions(new BABYLON.Vector3(1*tank.speed, 0, 0));
+                tank.rotation.y += 0.02;
+                tank.frontVector = new BABYLON.Vector3(Math.sin(tank.rotation.y), 0, Math.cos(tank.rotation.y));
+            }
+
         }
 
-    }
+        // to avoid firing too many cannonball rapidly
+        tank.canFireCannonBalls = true;
+        tank.fireCannonBallsAfter = 0.1; // in seconds
 
-    // to avoid firing too many cannonball rapidly
-    tank.canFireCannonBalls = true;
-    tank.fireCannonBallsAfter = 0.1; // in seconds
+        tank.fireCannonBalls = function () {
+            if (!inputStates.space) return;
 
-    tank.fireCannonBalls = function() {
-        if(!inputStates.space) return;
+            if (!this.canFireCannonBalls) return;
 
-        if(!this.canFireCannonBalls) return;
+            // ok, we fire, let's put the above property to false
+            this.canFireCannonBalls = false;
 
-        // ok, we fire, let's put the above property to false
-        this.canFireCannonBalls = false;
+            // let's be able to fire again after a while
+            setTimeout(() => {
+                this.canFireCannonBalls = true;
+            }, 1000 * this.fireCannonBallsAfter);
 
-        // let's be able to fire again after a while
-        setTimeout(() => {
-            this.canFireCannonBalls = true;
-        }, 1000 * this.fireCannonBallsAfter);
+            // Create a canonball
+            let cannonball = BABYLON.MeshBuilder.CreateSphere("cannonball", { diameter: 2, segments: 32 }, scene);
+            cannonball.material = new BABYLON.StandardMaterial("Fire", scene);
+            cannonball.material.diffuseTexture = new BABYLON.Texture("images/Fire.jpg", scene)
 
-        // Create a canonball
-        let cannonball = BABYLON.MeshBuilder.CreateSphere("cannonball", {diameter: 2, segments: 32}, scene);
-        cannonball.material = new BABYLON.StandardMaterial("Fire", scene);
-        cannonball.material.diffuseTexture = new BABYLON.Texture("images/Fire.jpg", scene)
+            let pos = this.position;
+            // position the cannonball above the tank
+            cannonball.position = new BABYLON.Vector3(pos.x, pos.y + 1, pos.z);
+            // move cannonBall position from above the center of the tank to above a bit further than the frontVector end (5 meter s further)
+            cannonball.position.addInPlace(this.frontVector.multiplyByFloats(5, 5, 5));
 
-        let pos = this.position;
-        // position the cannonball above the tank
-        cannonball.position = new BABYLON.Vector3(pos.x, pos.y+1, pos.z);
-        // move cannonBall position from above the center of the tank to above a bit further than the frontVector end (5 meter s further)
-        cannonball.position.addInPlace(this.frontVector.multiplyByFloats(5, 5, 5));
+            // add physics to the cannonball, mass must be non null to see gravity apply
+            cannonball.physicsImpostor = new BABYLON.PhysicsImpostor(cannonball,
+                BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1 }, scene);
 
-        // add physics to the cannonball, mass must be non null to see gravity apply
-        cannonball.physicsImpostor = new BABYLON.PhysicsImpostor(cannonball,
-            BABYLON.PhysicsImpostor.SphereImpostor, { mass: 1 }, scene);    
+            // the cannonball needs to be fired, so we need an impulse !
+            // we apply it to the center of the sphere
+            let powerOfFire = 100;
+            let azimuth = 0.1;
+            let aimForceVector = new BABYLON.Vector3(this.frontVector.x * powerOfFire, (this.frontVector.y + azimuth) * powerOfFire, this.frontVector.z * powerOfFire);
 
-        // the cannonball needs to be fired, so we need an impulse !
-        // we apply it to the center of the sphere
-        let powerOfFire = 100;
-        let azimuth = 0.1; 
-        let aimForceVector = new BABYLON.Vector3(this.frontVector.x*powerOfFire, (this.frontVector.y+azimuth)*powerOfFire,this.frontVector.z*powerOfFire);
-        
-        cannonball.physicsImpostor.applyImpulse(aimForceVector,cannonball.getAbsolutePosition());
+            cannonball.physicsImpostor.applyImpulse(aimForceVector, cannonball.getAbsolutePosition());
 
-        cannonball.actionManager = new BABYLON.ActionManager(scene);
-        // register an action for when the cannonball intesects a dude, so we need to iterate on each dude
-        scene.dudes.forEach(dude => {
-            cannonball.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
-                {trigger : BABYLON.ActionManager.OnIntersectionEnterTrigger,
-                parameter : dude.Dude.bounder}, // dude is the mesh, Dude is the instance if Dude class that has a bbox as a property named bounder.
-                                                // see Dude class, line 16 ! dudeMesh.Dude = this;
-                () => {
-                    // console.log(dude.Dude.bounder)
-                    if(dude.Dude.bounder._isDisposed) return;
+            cannonball.actionManager = new BABYLON.ActionManager(scene);
+            // register an action for when the cannonball intesects a dude, so we need to iterate on each dude
+            scene.dudes.forEach(dude => {
+                cannonball.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+                    {
+                        trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
+                        parameter: dude.Dude.bounder
+                    }, // dude is the mesh, Dude is the instance if Dude class that has a bbox as a property named bounder.
+                    // see Dude class, line 16 ! dudeMesh.Dude = this;
+                    () => {
+                        // console.log(dude.Dude.bounder)
+                        if (dude.Dude.bounder._isDisposed) return;
 
-                    //console.log("HIT !")
-                    //dude.Dude.bounder.dispose();
-                    //dude.dispose();
-                    dude.Dude.gotKilled();
-                    //cannonball.dispose(); // don't work properly why ? Need for a closure ?
-                }
-            ));
-        });
+                        //console.log("HIT !")
+                        //dude.Dude.bounder.dispose();
+                        //dude.dispose();
+                        dude.Dude.gotKilled();
+                        //cannonball.dispose(); // don't work properly why ? Need for a closure ?
+                    }
+                ));
+            });
 
-        // Make the cannonball disappear after 3s
-        setTimeout(() => {
-            cannonball.dispose();
-        }, 3000);
-    }
+            // Make the cannonball disappear after 3s
+            setTimeout(() => {
+                cannonball.dispose();
+            }, 3000);
+        }
 
-    // to avoid firing too many cannonball rapidly
-    tank.canFireLasers = true;
-    tank.fireLasersAfter = 0.3; // in seconds
+        // to avoid firing too many cannonball rapidly
+        tank.canFireLasers = true;
+        tank.fireLasersAfter = 0.3; // in seconds
 
-    tank.fireLasers = function() { 
-        // is the l key pressed ?
-        if(!inputStates.laser) return;
+        tank.fireLasers = function () {
+            // is the l key pressed ?
+            if (!inputStates.laser) return;
 
-        if(!this.canFireLasers) return;
+            if (!this.canFireLasers) return;
 
-        // ok, we fire, let's put the above property to false
-        this.canFireLasers = false;
+            // ok, we fire, let's put the above property to false
+            this.canFireLasers = false;
 
-        // let's be able to fire again after a while
-        setTimeout(() => {
-            this.canFireLasers = true;
-        }, 1000 * this.fireLasersAfter);
+            // let's be able to fire again after a while
+            setTimeout(() => {
+                this.canFireLasers = true;
+            }, 1000 * this.fireLasersAfter);
 
-        //console.log("create ray")
-        // create a ray
-        let origin = this.position; // position of the tank
-        //let origin = this.position.add(this.frontVector);
+            //console.log("create ray")
+            // create a ray
+            let origin = this.position; // position of the tank
+            //let origin = this.position.add(this.frontVector);
 
-        // Looks a little up (0.1 in y) 
-        let direction = new BABYLON.Vector3(this.frontVector.x, this.frontVector.y+0.1, this.frontVector.z);
-        let length = 1000;
-        let ray = new BABYLON.Ray(origin, direction, length)
+            // Looks a little up (0.1 in y) 
+            let direction = new BABYLON.Vector3(this.frontVector.x, this.frontVector.y + 0.1, this.frontVector.z);
+            let length = 1000;
+            let ray = new BABYLON.Ray(origin, direction, length)
 
-        // to make the ray visible :
-        let rayHelper = new BABYLON.RayHelper(ray);
-        rayHelper.show(scene, new BABYLON.Color3.Red);
+            // to make the ray visible :
+            let rayHelper = new BABYLON.RayHelper(ray);
+            rayHelper.show(scene, new BABYLON.Color3.Red);
 
-        // to make ray disappear after 200ms
-        setTimeout(() => {
-            rayHelper.hide(ray);
-        }, 200);
+            // to make ray disappear after 200ms
+            setTimeout(() => {
+                rayHelper.hide(ray);
+            }, 200);
 
-        // what did the ray touched?
-        /*
-        let pickInfo = scene.pickWithRay(ray);
-        // see what has been "picked" by the ray
-        console.log(pickInfo);
-        */
-
-        // See also multiPickWithRay if you want to kill "through" multiple objects
-        // this would return an array of boundingBoxes.... instead of one.
-        
-        let pickInfo =  scene.pickWithRay(ray, (mesh) => {
+            // what did the ray touched?
             /*
-            if((mesh.name === "heroTank")|| ((mesh.name === "ray"))) return false;
-            return true;
+            let pickInfo = scene.pickWithRay(ray);
+            // see what has been "picked" by the ray
+            console.log(pickInfo);
             */
-           return (mesh.name.startsWith("bounder"));
-        });
-        
-        if(pickInfo.pickedMesh) { // sometimes it's null for whatever reason...?
-            // the mesh is a bounding box of a dude
-            console.log(pickInfo.pickedMesh.name);
-            let bounder = pickInfo.pickedMesh;
-            let dude = bounder.dudeMesh.Dude;
-            // let's decrease the dude health, pass him the hit point
-            dude.decreaseHealth(pickInfo.pickedPoint);
+
+            // See also multiPickWithRay if you want to kill "through" multiple objects
+            // this would return an array of boundingBoxes.... instead of one.
+
+            let pickInfo = scene.pickWithRay(ray, (mesh) => {
+                /*
+                if((mesh.name === "heroTank")|| ((mesh.name === "ray"))) return false;
+                return true;
+                */
+                return (mesh.name.startsWith("bounder"));
+            });
+
+            if (pickInfo.pickedMesh) { // sometimes it's null for whatever reason...?
+                // the mesh is a bounding box of a dude
+                console.log(pickInfo.pickedMesh.name);
+                let bounder = pickInfo.pickedMesh;
+                let dude = bounder.dudeMesh.Dude;
+                // let's decrease the dude health, pass him the hit point
+                dude.decreaseHealth(pickInfo.pickedPoint);
 
 
-            //bounder.dudeMesh.dispose();
-            //bounder.dispose();
+                //bounder.dudeMesh.dispose();
+                //bounder.dispose();
+            }
+
         }
 
+        return tank;
     }
-
-    return tank;}
 }
 
 function createHeroDude(scene) {
-   // load the Dude 3D animated model
+    // load the Dude 3D animated model
     // name, folder, skeleton name  
     //BABYLON.SceneLoader.ImportMesh("him", "models/Dude/", "Dude.babylon", scene, onDudeImported);
 
@@ -382,7 +389,7 @@ function createHeroDude(scene) {
 
         // make clones
         scene.dudes = [];
-        for(let i = 0; i < 10; i++) {
+        for (let i = 0; i < 10; i++) {
             scene.dudes[i] = doClone(heroDude, skeletons, i);
             scene.beginAnimation(scene.dudes[i].skeleton, 0, 120, true, 1);
 
@@ -401,32 +408,32 @@ function createHeroDude(scene) {
 
 function doClone(originalMesh, skeletons, id) {
     let myClone;
-    let xrand = Math.floor(Math.random()*500 - 250);
-    let zrand = Math.floor(Math.random()*500 - 250);
+    let xrand = Math.floor(Math.random() * 500 - 250);
+    let zrand = Math.floor(Math.random() * 500 - 250);
 
     myClone = originalMesh.clone("clone_" + id);
     myClone.position = new BABYLON.Vector3(xrand, 0, zrand);
 
-    if(!skeletons) return myClone;
+    if (!skeletons) return myClone;
 
     // The mesh has at least one skeleton
-    if(!originalMesh.getChildren()) {
+    if (!originalMesh.getChildren()) {
         myClone.skeleton = skeletons[0].clone("clone_" + id + "_skeleton");
         return myClone;
     } else {
-        if(skeletons.length === 1) {
+        if (skeletons.length === 1) {
             // the skeleton controls/animates all children, like in the Dude model
             let clonedSkeleton = skeletons[0].clone("clone_" + id + "_skeleton");
             myClone.skeleton = clonedSkeleton;
             let nbChildren = myClone.getChildren().length;
 
-            for(let i = 0; i < nbChildren;  i++) {
+            for (let i = 0; i < nbChildren; i++) {
                 myClone.getChildren()[i].skeleton = clonedSkeleton
             }
             return myClone;
-        } else if(skeletons.length === originalMesh.getChildren().length) {
+        } else if (skeletons.length === originalMesh.getChildren().length) {
             // each child has its own skeleton
-            for(let i = 0; i < myClone.getChildren().length;  i++) {
+            for (let i = 0; i < myClone.getChildren().length; i++) {
                 myClone.getChildren()[i].skeleton = skeletons[i].clone("clone_" + id + "_skeleton_" + i);
             }
             return myClone;
@@ -438,16 +445,16 @@ function doClone(originalMesh, skeletons, id) {
 
 function moveHeroDude() {
     let heroDude = scene.getMeshByName("heroDude");
-    if(heroDude)
+    if (heroDude)
         heroDude.Dude.move(scene);
 }
 
 function moveOtherDudes() {
-    if(scene.dudes) {
-        for(var i = 0 ; i < scene.dudes.length ; i++) {
+    if (scene.dudes) {
+        for (var i = 0; i < scene.dudes.length; i++) {
             scene.dudes[i].Dude.move(scene);
         }
-    }    
+    }
 }
 
 window.addEventListener("resize", () => {
@@ -458,7 +465,7 @@ function modifySettings() {
     // as soon as we click on the game window, the mouse pointer is "locked"
     // you will have to press ESC to unlock it
     scene.onPointerDown = () => {
-        if(!scene.alreadyLocked) {
+        if (!scene.alreadyLocked) {
             console.log("requesting pointer lock");
             canvas.requestPointerLock();
         } else {
@@ -467,8 +474,8 @@ function modifySettings() {
     }
 
     document.addEventListener("pointerlockchange", () => {
-        let element = document.pointerLockElement || null;
-        if(element) {
+        let element = document.pointerLockElement || null;
+        if (element) {
             // lets create a custom attribute
             scene.alreadyLocked = true;
         } else {
@@ -483,39 +490,39 @@ function modifySettings() {
     inputStates.down = false;
     inputStates.space = false;
     inputStates.laser = false;
-    
+
     //add the listener to the main, window object, and update the states
     window.addEventListener('keydown', (event) => {
-        if ((event.key === "ArrowLeft") || (event.key === "q")|| (event.key === "Q")) {
-           inputStates.left = true;
-        } else if ((event.key === "ArrowUp") || (event.key === "z")|| (event.key === "Z")){
-           inputStates.up = true;
-        } else if ((event.key === "ArrowRight") || (event.key === "d")|| (event.key === "D")){
-           inputStates.right = true;
-        } else if ((event.key === "ArrowDown")|| (event.key === "s")|| (event.key === "S")) {
-           inputStates.down = true;
-        }  else if (event.key === " ") {
-           inputStates.space = true;
+        if ((event.key === "ArrowLeft") || (event.key === "q") || (event.key === "Q")) {
+            inputStates.left = true;
+        } else if ((event.key === "ArrowUp") || (event.key === "z") || (event.key === "Z")) {
+            inputStates.up = true;
+        } else if ((event.key === "ArrowRight") || (event.key === "d") || (event.key === "D")) {
+            inputStates.right = true;
+        } else if ((event.key === "ArrowDown") || (event.key === "s") || (event.key === "S")) {
+            inputStates.down = true;
+        } else if (event.key === " ") {
+            inputStates.space = true;
         } else if ((event.key === "l") || (event.key === "L")) {
             inputStates.laser = true;
-         }
+        }
     }, false);
 
     //if the key will be released, change the states object 
     window.addEventListener('keyup', (event) => {
-        if ((event.key === "ArrowLeft") || (event.key === "q")|| (event.key === "Q")) {
-           inputStates.left = false;
-        } else if ((event.key === "ArrowUp") || (event.key === "z")|| (event.key === "Z")){
-           inputStates.up = false;
-        } else if ((event.key === "ArrowRight") || (event.key === "d")|| (event.key === "D")){
-           inputStates.right = false;
-        } else if ((event.key === "ArrowDown")|| (event.key === "s")|| (event.key === "S")) {
-           inputStates.down = false;
-        }  else if (event.key === " ") {
-           inputStates.space = false;
+        if ((event.key === "ArrowLeft") || (event.key === "q") || (event.key === "Q")) {
+            inputStates.left = false;
+        } else if ((event.key === "ArrowUp") || (event.key === "z") || (event.key === "Z")) {
+            inputStates.up = false;
+        } else if ((event.key === "ArrowRight") || (event.key === "d") || (event.key === "D")) {
+            inputStates.right = false;
+        } else if ((event.key === "ArrowDown") || (event.key === "s") || (event.key === "S")) {
+            inputStates.down = false;
+        } else if (event.key === " ") {
+            inputStates.space = false;
         } else if ((event.key === "l") || (event.key === "L")) {
             inputStates.laser = false;
-         }
+        }
     }, false);
 }
 
