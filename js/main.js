@@ -265,7 +265,7 @@ function createFollowCamera(scene, target) {
   camera.radius = 60; // how far from the object to follow
   camera.heightOffset = 20; // how high above the object to place the camera
   camera.rotationOffset = 180; // the viewing angle
-  camera.cameraAcceleration = 0.2; // how fast to move
+  camera.cameraAcceleration = .2; // how fast to move
   camera.maxCameraSpeed = 5; // speed limit
 
   // specific values
@@ -291,6 +291,7 @@ let zMovement = 5;
 function createTank(scene) {
   var meshTask = scene.assetsManager.addMeshTask("heroTank", "", "models/", "tank.glb");
 
+
   meshTask.onSuccess = function (task) {
       onTankImported(task.loadedMeshes, task.loadedParticleSystems, task.loadedSkeletons);
   }
@@ -310,62 +311,66 @@ function createTank(scene) {
   //tank.isPickable = false; 
   function onTankImported(newMeshes, particleSystems, skeletons) {
       let tank = newMeshes[0];
-      tank.position = new BABYLON.Vector3(15, 0, 190)  // The original dud
+      tank.position = new BABYLON.Vector3(0, 0, 5);  // The original dud
       tank.name = "heroTank"
 // scaling
 tank.scaling = new BABYLON.Vector3(5, 5, 5);
 
       // By default the box/tank is in 0, 0, 0, let's change that...
-      tank.position.y = 1;
-      tank.speed = 1;
+      tank.position.y = 18;
+
+      tank.speed = 10;
       tank.frontVector = new BABYLON.Vector3(0, 0, 1);
+      
+    // let axisMovement = [false, false, false, false, false];
 
-      tank.move = () => {
-          //tank.position.z += -1; // speed should be in unit/s, and depends on
-          // deltaTime !
+          tank.move = () => {
+            //tank.position.z += -1; // speed should be in unit/s, and depends on
+            // deltaTime !
+  
+            // if we want to move while taking into account collision detections
+            // collision uses by default "ellipsoids"
+            let yMovement = 0;
 
-          // if we want to move while taking into account collision detections
-          // collision uses by default "ellipsoids"
+            
+        let fps = 1000 ;
+        let relativeSpeed = tank.speed / (fps / 60); 
+        let rotationSpeed = 0.9;           // Vitesse de rotation
+        
+            //tank.moveWithCollisions(new BABYLON.Vector3(0, yMovement, zMovement));
+  
+            if (scene.inputStates.up) {
+               // tank.moveWithCollisions(new BABYLON.Vector3(0, 0, 1*tank.speed));
+               // tank.moveWithCollisions(tank.frontVector.multiplyByFloats(tank.speed, tank.speed, tank.speed));
+               let backward = new BABYLON.Vector3(
+                parseFloat(-Math.sin(parseFloat(tank.rotation.y))) * relativeSpeed, 
+                0, 
+                parseFloat(-Math.cos(parseFloat(tank.rotation.y))) * relativeSpeed
+            );
+             tank.moveWithCollisions(backward);
+              }
 
-          let fps = 1000 ;
-          let relativeSpeed = tank.speed / (fps / 60);            // Vitesse de déplacement
+            if (scene.inputStates.down) {
+                //tank.moveWithCollisions(new BABYLON.Vector3(0, 0, -1*tank.speed));
+              // tank.moveWithCollisions(tank.frontVector.multiplyByFloats(-tank.speed, -tank.speed, -tank.speed));
+              let forward = new BABYLON.Vector3(
+                parseFloat(Math.sin(parseFloat(tank.rotation.y))) * relativeSpeed, 
+                0, 
+                parseFloat(Math.cos(parseFloat(tank.rotation.y))) * relativeSpeed
+            );tank.moveWithCollisions(forward);
+            }
+
+            if (scene.inputStates.left) {
+                //tank.moveWithCollisions(new BABYLON.Vector3(-1*tank.speed, 0, 0));
+                tank.rotation.y += rotationSpeed;
           
-              //tank.moveWithCollisions(new BABYLON.Vector3(0, yMovement, zMovement));
-    
-              if (scene.inputStates.up) {
-                 // tank.moveWithCollisions(new BABYLON.Vector3(0, 0, 1*tank.speed));
-                 // tank.moveWithCollisions(tank.frontVector.multiplyByFloats(tank.speed, tank.speed, tank.speed));
-                  tank.rotation.y -= relativeSpeed;
-                }
-              if (scene.inputStates.down) {
-                  //tank.moveWithCollisions(new BABYLON.Vector3(0, 0, -1*tank.speed));
-                // tank.moveWithCollisions(tank.frontVector.multiplyByFloats(-tank.speed, -tank.speed, -tank.speed));
-                  tank.rotation.y += relativeSpeed;
+            }
+            if (scene.inputStates.right) {
+                //tank.moveWithCollisions(new BABYLON.Vector3(1*tank.speed, 0, 0));
+                tank.rotation.y -= rotationSpeed;  
               }
-              if (scene.inputStates.left) {
-                  //tank.moveWithCollisions(new BABYLON.Vector3(-1*tank.speed, 0, 0));
-                  
-                  let forward = new BABYLON.Vector3(
-                    parseFloat(Math.sin(parseFloat(tank.rotation.y))) * relativeSpeed, 
-                    0, 
-                    parseFloat(Math.cos(parseFloat(tank.rotation.y))) * relativeSpeed
-                );tank.moveWithCollisions(forward);
-                  
-              }
-              if (scene.inputStates.right) {
-                  //tank.moveWithCollisions(new BABYLON.Vector3(1*tank.speed, 0, 0));
-                  
-                  let backward = new BABYLON.Vector3(
-                    parseFloat(-Math.sin(parseFloat(tank.rotation.y))) * relativeSpeed, 
-                    0, 
-                    parseFloat(-Math.cos(parseFloat(tank.rotation.y))) * relativeSpeed
-                );
-                 tank.moveWithCollisions(backward);
-                }
-                
-                tank.moveWithCollisions(new BABYLON.Vector3(0, (-1.5) * relativeSpeed, 0));  
-
-      }
+              tank.moveWithCollisions(new BABYLON.Vector3(0, (-1.5) * relativeSpeed, 0));
+        }
 
       // to avoid firing too many cannonball rapidly
       tank.canFireCannonBalls = true;
@@ -516,8 +521,8 @@ function createScoreboard(){
   outputplane = BABYLON.Mesh.CreatePlane("outputplane", 20, scene, false);
   outputplane.billboardMode = BABYLON.AbstractMesh.BILLBOARDMODE_ALL;
   outputplane.material = new BABYLON.StandardMaterial("outputplane", scene);
-  outputplane.position = new BABYLON.Vector3(0, 20, 350);
-  outputplane.scaling.x = 0.5;
+  outputplane.position = new BABYLON.Vector3(2, 3, 0);
+  outputplane.scaling.x = 0.05;
   outputplane.scaling.z= 0.05;
   outputplane.rotate(BABYLON.Axis.Z, 10 * Math.PI / 180);
 
