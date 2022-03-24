@@ -5,6 +5,7 @@ export default class Dude {
     this.scene = scene;
     this.scaling = scaling;
     this.health = 3; // three shots to kill the dude !
+    this.frontVector = new BABYLON.Vector3(0, 0, -1); // at start dude is facing camera looking to -Z
 
     if (speed) this.speed = speed;
     else this.speed = 1;
@@ -38,7 +39,7 @@ export default class Dude {
     }
   }
 
-  move(scene) {
+  followTank(scene) {
     // as move can be called even before the bbox is ready.
     if (!this.bounder) return;
 
@@ -50,8 +51,11 @@ export default class Dude {
       this.bounder.position.z
     );
 
+    // adjust y position dependingOn Ground height
+    this.followGround();
+
     // follow the tank
-    let tank = scene.getMeshByName("tank");
+    let tank = scene.getMeshByName("heroTank");
     // let's compute the direction vector that goes from Dude to the tank
     let direction = tank.position.subtract(this.dudeMesh.position);
     let distance = direction.length(); // we take the vector that is not normalized, not the dir vector
@@ -79,6 +83,199 @@ export default class Dude {
     }
   }
 
+  moveFPS(scene) {
+    // just called with the original dude....
+    scene.activeCamera=scene.activeCameras[0]
+    // if no bounding box return;
+    if (!this.bounder) return;
+
+    // if active camera is not on dude, it cannot be controlled...
+    if ((scene.activeCamera !== scene.followCameraDude) && (scene.activeCamera !== scene.freeCameraDude)) {
+      // if active camera is not following the dude, this latter is immobile.
+      // let's pause his animation...
+      //this.dudeMesh.animation.pause();
+      return;
+    }
+
+    // active camera is on the dude. restart animation if he's moving forward or backward
+    if (scene.inputStates.up || scene.inputStates.down) {
+      this.dudeMesh.animation.restart();
+    } else {
+      this.dudeMesh.animation.pause();
+    }
+
+    // Movements using arrows or zqsd...
+    // TODO : We can certainly separate the two following cases in two methods
+    // or at least factorize the code....
+    // many similar operations are executed in follow camera and free camera mode 
+    // such as : adjust XY pos, compute ground height, compute height of bounding box etc.
+    if (scene.activeCamera === scene.followCameraDude) {
+      // like with followTank(), dude takes bounding box position, as we choosed to move the bbox
+      this.dudeMesh.position.x = this.bounder.position.x;
+      this.dudeMesh.position.z = this.bounder.position.z;
+
+      // adjust y position dependingOn Ground height
+      let groundHeight = this.followGround();
+
+      var direction = this.frontVector;
+      var dir = direction.normalize();
+      var alpha = Math.atan2(-1 * dir.x, -1 * dir.z);
+      this.dudeMesh.rotation.y = alpha;
+
+      if (scene.inputStates.up) {
+        this.bounder.moveWithCollisions(
+          this.frontVector.multiplyByFloats(this.speed, this.speed, this.speed)
+        );
+      }
+
+      if (scene.inputStates.down) {
+        this.bounder.moveWithCollisions(
+          this.frontVector.multiplyByFloats(-this.speed, -this.speed, -this.speed)
+        );
+      }
+
+      if (scene.inputStates.left) {
+        var alpha = this.dudeMesh.rotation.y;
+        alpha -= 0.02;
+        this.frontVector = new BABYLON.Vector3(-Math.sin(alpha), 0, -Math.cos(alpha));
+      }
+      if (scene.inputStates.right) {
+        var alpha = this.dudeMesh.rotation.y;
+        alpha += 0.02;
+        this.frontVector = new BABYLON.Vector3(-Math.sin(alpha), 0, -Math.cos(alpha));
+      }
+
+      // Ok, we're moving the Dude, so let's move also the free camera on its head
+      scene.freeCameraDude.position.x = this.bounder.position.x;
+      scene.freeCameraDude.position.z = this.bounder.position.z;
+      let bboxHeight = this.getBoundingBoxHeightScaled();
+      scene.freeCameraDude.position.y = groundHeight + bboxHeight + 0.2;
+      // change also the target where the free camera is looking at
+      let targetPoint = new BABYLON.Vector3(this.frontVector.x, this.frontVector.y, this.frontVector.z);
+      scene.freeCameraDude.setTarget(scene.freeCameraDude.position.add(targetPoint));
+      
+    } else if(scene.activeCamera === scene.freeCameraDude) {
+       // like with followTank(), dude takes bounding box position, as we choosed to move the bbox
+       this.dudeMesh.position.x = this.bounder.position.x-this.frontVector*1.5;
+       this.dudeMesh.position.z = this.bounder.position.z-this.frontVector*1.5;
+
+       // IN THIS MODE, ZQSD moves the camera and the mouse change its orientation
+       // WE ARE GOING TO MOVE THE BOUNDER, and rotate the Dude, by
+       // copying the cam position and orientation to bounder + rotate dude
+
+      // adjust y position depending on ground height
+      let groundHeight = this.followGround();
+
+      // set the cam position on top of the bounding box + 0.2, also add ground height
+      let bboxHeight = this.getBoundingBoxHeightScaled();
+      scene.freeCameraDude.position.y = groundHeight + bboxHeight + 0.2;
+
+      // where is the camera looking at ?
+      // we need the front vector for computing th dude rotation y angle
+
+      // 1 - let's compute the vector going from camera position to camera target
+      let cameraFront = scene.freeCameraDude.getTarget().subtract(scene.freeCameraDude.position);
+      cameraFront.normalize();
+      this.frontVector = cameraFront;
+
+      // 2 - compute alpha, same as follow camera
+      let dir = this.frontVector;
+      var alpha = Math.atan2(-1 * dir.x, -1 * dir.z);
+      this.dudeMesh.rotation.y = alpha;
+
+      // move the bounding box to the camera pos (remember : the camera is the moving object here!)
+      this.bounder.position.x = scene.freeCameraDude.position.x;
+      this.bounder.position.z = scene.freeCameraDude.position.z;
+
+      // Also position the followCameraDude ? This would avoid making it 
+      // "fly to the new Dude pos" if he has been moved using the freeCamera.
+      scene.followCameraDude.x = scene.freeCameraDude.position.x;
+      scene.followCameraDude.z = scene.freeCameraDude.position.z;
+    }
+  }
+
+  followGround() {
+    // adjusts y position depending on ground height...
+
+    // create a ray that starts above the dude, and goes down vertically
+    let origin = new BABYLON.Vector3(this.dudeMesh.position.x, 1000, this.dudeMesh.position.z);
+    let direction = new BABYLON.Vector3(0, -1, 0);
+    let ray = new BABYLON.Ray(origin, direction, 10000);
+
+    // compute intersection point with the ground
+    let pickInfo = this.scene.pickWithRay(ray, (mesh) => { return (mesh.name === "gdhm"); });
+
+    let groundHeight = pickInfo.pickedPoint.y;
+    this.dudeMesh.position.y = groundHeight;
+
+    /*
+    let bbInfo = Dude.boundingBoxParameters;
+
+    let max = bbInfo.boundingBox.maximum;
+    let min = bbInfo.boundingBox.minimum;
+
+    // Not perfect, but kinda of works...
+    // Looks like collisions are computed on a box that has half the size... ?
+    //bounder.scaling.y = (max._y - min._y) * this.scaling * 2;
+
+    let lengthY = (max._y - min._y);
+
+   this.bounder.position.y = groundHeight + (max._y - min._y) * this.scaling/2
+   */
+    let bboxHeightScaled = this.getBoundingBoxHeightScaled();
+    this.bounder.position.y = groundHeight + bboxHeightScaled / 2;
+    return groundHeight;
+  }
+
+  fireGun() {
+    // play the sound
+    this.scene.assets.gunSound.play();
+
+    // the crosshair is always at the center of the screen with the "FPS view"
+    // we set with the FreeCameraDude
+    // let's check which mesh is intersected by a ray the passes perpendicularly
+    // through the crosshair at center of the screen
+
+    // 1 - get the location of the screen center
+    let width = this.scene.getEngine().getRenderWidth();
+    let height = this.scene.getEngine().getRenderHeight();
+    let pickInfos = this.scene.multiPick(width/4, height/2,null,this.scene.activeCameras[0]);
+
+    // 2 - find the closest hit mesh that is not yourself
+    for(let i=0; i < pickInfos.length; i++) {
+      // with pickInfo we can get the closest mesh or even the impact 3D point located "behind"
+      // the crosshair. Let's see how we used pickInfo with the tank laser, the code should be
+      // similar here....
+      let mesh = pickInfos[i].pickedMesh;
+      let impactPoint = pickInfos[i].pickedPoint;
+
+      // we dont't want a collision with our own bounding box (bounder-1)
+      if ((mesh.name.startsWith("bounder") && mesh.name !== "bounder-1")) {
+        console.log(mesh.name)
+        // we hit a dude
+        let bounder = mesh;
+        let dude = bounder.dudeMesh.Dude;
+        // let's decrease the dude health, pass him the hit point
+        dude.decreaseHealth(impactPoint);
+        break; // we don't want to test other collisions...
+      } else if (mesh.name.startsWith("heroTank")) {
+        console.log("We hit the tank !");
+        break;
+      }
+    }
+   
+  }
+
+  getBoundingBoxHeightScaled() {
+    let bbInfo = Dude.boundingBoxParameters;
+
+    let max = bbInfo.boundingBox.maximum;
+    let min = bbInfo.boundingBox.minimum;
+
+    let lengthY = (max._y - min._y) * this.scaling;
+    return lengthY;
+  }
+
   decreaseHealth(hitPoint) {
     // locate particle system at hit point
     Dude.particleSystem.emitter = hitPoint;
@@ -94,13 +291,25 @@ export default class Dude {
 
     if (this.health <= 0) {
       this.gotKilled();
+      
     }
   }
 
   gotKilled() {
+    // Make some sounds !
+    this.scene.assets.dieSound.setPosition(this.bounder.position);
+    this.scene.assets.dieSound.setPlaybackRate(0.8 + (Math.random() - 0.8));
+    this.scene.assets.dieSound.play();
+
+    this.scene.assets.explosion.setPosition(this.bounder.position);
+    this.scene.assets.explosion.play();
+
     // 1st possibility, just change some parameters of the particleSystem for this big explosion !
-    console.log(this.bounder);
+    //console.log(this.bounder);
+    /*
     this.setParticleSystemToFinalExplosion();
+
+  
 
     Dude.particleSystem.start();
     setTimeout(() => {
@@ -108,22 +317,23 @@ export default class Dude {
       this.createParticleSystem()
       this.setParticleSystemDefaultValues(); // reset to original values
     }, 300);
-
+*/
     // 2nd possibility : use the particuleHelper
     //BABYLON.ParticleHelper.BaseAssetsUrl = "particles";
 
     // Need to add the textures to an explosion folder at root of the project.
     // take assets from https://github.com/BabylonJS/Assets
-    /*
-    BABYLON.ParticleHelper.CreateAsync("explosion", this.scene).then((set) => {
-      set.systems.forEach(s => {
-        s.emitter = this.bounder.position;
 
-          s.disposeOnStop = true;
+
+    BABYLON.ParticleHelper.CreateAsync("explosion", this.scene).then((set) => {
+      set.systems.forEach((s) => {
+        s.emitter = this.bounder.position; // bug in ParticleHelper : y pos taken into account only by parts of the particles systems. ?
+        console.log(s.emitter)
+
+        s.disposeOnStop = true;
       });
       set.start();
     });
-  */
 
     this.dudeMesh.dispose();
     this.bounder.dispose();
@@ -181,17 +391,22 @@ export default class Dude {
     // Not perfect, but kinda of works...
     // Looks like collisions are computed on a box that has half the size... ?
     bounder.scaling.x = (max._x - min._x) * this.scaling;
-    bounder.scaling.y = (max._y - min._y) * this.scaling * 2;
+    bounder.scaling.y = (max._y - min._y) * this.scaling;
     bounder.scaling.z = (max._z - min._z) * this.scaling * 3;
-
     //bounder.isVisible = false;
+
+    bounder.position.y += (max._y - min._y) * this.scaling / 2;
 
     return bounder;
   }
 
   createParticleSystem() {
     // Create a particle system
-    var particleSystem = new BABYLON.ParticleSystem("particles", 2000, this.scene);
+    var particleSystem = new BABYLON.ParticleSystem(
+      "particles",
+      2000,
+      this.scene
+    );
 
     //Texture of each particle
     particleSystem.particleTexture = new BABYLON.Texture(
@@ -224,16 +439,16 @@ export default class Dude {
     particleSystem.minEmitPower = 6;
     particleSystem.maxEmitPower = 10;
 
-     // Size of each particle (random between...
-     particleSystem.minSize = 0.4;
-     particleSystem.maxSize = 0.8;
+    // Size of each particle (random between...
+    particleSystem.minSize = 0.4;
+    particleSystem.maxSize = 0.8;
   }
 
   setParticleSystemToFinalExplosion() {
     let particleSystem = Dude.particleSystem;
-      particleSystem.emitter = new BABYLON.Vector3(
+    particleSystem.emitter = new BABYLON.Vector3(
       this.bounder.position.x,
-      this.bounder.position.y + 6,
+      this.bounder.position.y,
       this.bounder.position.z
     );
     console.log(this.bounder);
@@ -242,13 +457,13 @@ export default class Dude {
     particleSystem.minEmitPower = 12;
     particleSystem.maxEmitPower = 20;
 
-     // Size of each particle (random between...
-     particleSystem.minSize = 0.5;
-     particleSystem.maxSize = 2.5;
- 
-     // Life time of each particle (random between...
-     particleSystem.minLifeTime = 0.3;
-     particleSystem.maxLifeTime = 1.5;
+    // Size of each particle (random between...
+    particleSystem.minSize = 0.5;
+    particleSystem.maxSize = 2.5;
+
+    // Life time of each particle (random between...
+    particleSystem.minLifeTime = 0.3;
+    particleSystem.maxLifeTime = 1.5;
 
     particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
 
