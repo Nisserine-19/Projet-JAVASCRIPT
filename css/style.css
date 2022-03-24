@@ -1,0 +1,21 @@
+html, body {
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  cursor: crosshair;
+  color: rgba(247, 242, 242, 0.856);
+  font-family: airstrike_boldbold, Arial sans-serif; }
+
+button {
+  cursor: pointer; }
+#topRight{
+    right: 0;
+    text-align: right;
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 40px;
+}
+
+
+/*# sourceMappingURL=style.css.map */

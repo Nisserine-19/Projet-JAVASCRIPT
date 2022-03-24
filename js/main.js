@@ -429,7 +429,8 @@ tank.scaling = new BABYLON.Vector3(5, 5, 5);
                       //dude.Dude.bounder.dispose();
                       //dude.dispose();
                       dude.Dude.gotKilled();
-                      score += 1;
+                      score += 10;
+                      document.getElementById("score").innerText = "Score : "+ score;
                       console.log(score)
                       updateScore(score);
                       //cannonball.dispose(); // don't work properly why ? Need for a closure ?
