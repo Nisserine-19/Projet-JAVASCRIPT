@@ -327,33 +327,43 @@ tank.scaling = new BABYLON.Vector3(5, 5, 5);
           // if we want to move while taking into account collision detections
           // collision uses by default "ellipsoids"
 
-          let yMovement = 0;
-
-          if (tank.position.y > 2) {
-              zMovement = 0;
-              yMovement = -1
-          }
-          //tank.moveWithCollisions(new BABYLON.Vector3(0, yMovement, zMovement));
-
-          if (scene.inputStates.up) {
-              //tank.moveWithCollisions(new BABYLON.Vector3(0, 0, 1*tank.speed));
-              tank.moveWithCollisions(tank.frontVector.multiplyByFloats(tank.speed, tank.speed, tank.speed));
-          }
-          if (scene.inputStates.down) {
-              //tank.moveWithCollisions(new BABYLON.Vector3(0, 0, -1*tank.speed));
-              tank.moveWithCollisions(tank.frontVector.multiplyByFloats(-tank.speed, -tank.speed, -tank.speed));
-
-          }
-          if (scene.inputStates.left) {
-              //tank.moveWithCollisions(new BABYLON.Vector3(-1*tank.speed, 0, 0));
-              tank.rotation.y -= 0.02;
-              tank.frontVector = new BABYLON.Vector3(Math.sin(tank.rotation.y), 0, Math.cos(tank.rotation.y));
-          }
-          if (scene.inputStates.right) {
-              //tank.moveWithCollisions(new BABYLON.Vector3(1*tank.speed, 0, 0));
-              tank.rotation.y += 0.02;
-              tank.frontVector = new BABYLON.Vector3(Math.sin(tank.rotation.y), 0, Math.cos(tank.rotation.y));
-          }
+          let fps = 1000 ;
+          let relativeSpeed = tank.speed / (fps / 60);            // Vitesse de déplacement
+          
+              //tank.moveWithCollisions(new BABYLON.Vector3(0, yMovement, zMovement));
+    
+              if (scene.inputStates.up) {
+                 // tank.moveWithCollisions(new BABYLON.Vector3(0, 0, 1*tank.speed));
+                 // tank.moveWithCollisions(tank.frontVector.multiplyByFloats(tank.speed, tank.speed, tank.speed));
+                  tank.rotation.y -= relativeSpeed;
+                }
+              if (scene.inputStates.down) {
+                  //tank.moveWithCollisions(new BABYLON.Vector3(0, 0, -1*tank.speed));
+                // tank.moveWithCollisions(tank.frontVector.multiplyByFloats(-tank.speed, -tank.speed, -tank.speed));
+                  tank.rotation.y += relativeSpeed;
+              }
+              if (scene.inputStates.left) {
+                  //tank.moveWithCollisions(new BABYLON.Vector3(-1*tank.speed, 0, 0));
+                  
+                  let forward = new BABYLON.Vector3(
+                    parseFloat(Math.sin(parseFloat(tank.rotation.y))) * relativeSpeed, 
+                    0, 
+                    parseFloat(Math.cos(parseFloat(tank.rotation.y))) * relativeSpeed
+                );tank.moveWithCollisions(forward);
+                  
+              }
+              if (scene.inputStates.right) {
+                  //tank.moveWithCollisions(new BABYLON.Vector3(1*tank.speed, 0, 0));
+                  
+                  let backward = new BABYLON.Vector3(
+                    parseFloat(-Math.sin(parseFloat(tank.rotation.y))) * relativeSpeed, 
+                    0, 
+                    parseFloat(-Math.cos(parseFloat(tank.rotation.y))) * relativeSpeed
+                );
+                 tank.moveWithCollisions(backward);
+                }
+                
+                tank.moveWithCollisions(new BABYLON.Vector3(0, (-1.5) * relativeSpeed, 0));  
 
       }
 
