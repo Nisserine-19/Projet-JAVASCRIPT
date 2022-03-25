@@ -199,7 +199,7 @@ function createGround(scene) {
       "groundMaterial",
       scene
     );
-    groundMaterial.diffuseTexture = new BABYLON.Texture("images/grass.jpg");
+    groundMaterial.diffuseTexture = new BABYLON.Texture("images/desert.jpg");
     ground.material = groundMaterial;
     // to be taken into account by collision detection
     ground.checkCollisions = true;
@@ -522,10 +522,10 @@ function createScoreboard(){
   outputplane = BABYLON.Mesh.CreatePlane("outputplane", 20, scene, false);
   outputplane.billboardMode = BABYLON.AbstractMesh.BILLBOARDMODE_ALL;
   outputplane.material = new BABYLON.StandardMaterial("outputplane", scene);
-  outputplane.position = new BABYLON.Vector3(2, 3, 0);
-  outputplane.scaling.x = 0.05;
-  outputplane.scaling.z= 0.05;
-  outputplane.rotate(BABYLON.Axis.Z, 10 * Math.PI / 180);
+  outputplane.position = new BABYLON.Vector3(0, 45, 7);
+  outputplane.scaling.x = 4;
+  outputplane.scaling.z= 6;
+  outputplane.rotate(BABYLON.Axis.Z, 5 * Math.PI / 180);
 
   outputplaneTexture = new BABYLON.DynamicTexture("dynamic texture", 512, scene, true);
   outputplane.material.diffuseTexture = outputplaneTexture;
