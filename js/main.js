@@ -565,7 +565,7 @@ function createHeroDude(scene) {
 
   function onDudeImported(newMeshes, particleSystems, skeletons) {
     let heroDude = newMeshes[0];
-    heroDude.position = new BABYLON.Vector3(0, 0, 5); // The original dude
+    heroDude.position = new BABYLON.Vector3(15, 3, 5); // The original dude
     // make it smaller
     //heroDude.speed = 0.1;
 
