@@ -1,0 +1,55 @@
+body {
+  background-color:  #1e1a17c1  ;
+  background-size: cover; 
+  
+}
+.frame {
+  width: 400px;
+  height: 400px;
+  background-color: transparent;
+  margin: auto;
+  text-align: center;
+  border: 1px solid transparent;
+  -webkit-box-shadow: 0px 10px 13px -7px #000000, 5px 5px 15px 5px rgba(0,0,0,0); 
+  box-shadow: 0px 10px 13px -7px #000000, 5px 5px 15px 5px rgba(0,0,0,0);
+  background-color: #dbd0bcc1 ;
+  background-size: cover;
+  
+  position: relative;
+  top: 1rem;
+}
+
+img {
+  height: 180px;
+  width: 350px;
+  text-align: center;
+  margin: auto;
+
+
+}
+.frame1 {
+  text-align: center;
+  margin: auto;
+  z-index: 10;
+  margin-top: 75px;
+}
+.button {
+text-align: middle;
+margin-top: 30px;
+padding-top: 10px;
+padding-bottom: 10px;
+padding-left: 80px;
+padding-right: 80px;
+background-color: transparent;
+-webkit-box-shadow: 5px 5px 5px 0px #000000, inset 4px 4px 15px 0px #000000, 5px 5px 15px 5px rgba(255,139,253,0); 
+box-shadow: 5px 5px 5px 0px #000000, inset 4px 4px 15px 0px #000000, 5px 5px 15px 5px rgba(255,139,253,0);
+text-shadow: #FFF 0px 0px 5px, #FFF 0px 0px 10px, #FFF 0px 0px 15px, #ff842d 0px 0px 20px, #ff842d  0px 0px 30px, #ff842d  0px 0px 40px, #ff842d  0px 0px 50px, #ff842d  0px 0px 75px;
+border: 3px double #ff842d ;
+border-radius: 3px;
+color: #00004A;
+font-family: 'Luckiest Guy', cursive;
+font-size: 16px;
+}
+.btn-group {
+  margin-top: 80px;
+}

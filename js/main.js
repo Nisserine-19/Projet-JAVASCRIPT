@@ -36,6 +36,14 @@ function startFirstScene()
     moveHeroDude();
     moveOtherDudes();
     scene.render();
+    if (score >80){
+      window.location.href="replay_game.html";
+      score=0; 
+    }
+    // } else {
+    //   //afficher le menu de pause
+    //   document.getElementById("pause").style.display = "flex";
+    // }
     }
 
     scene.assetsManager.load();
@@ -54,7 +62,7 @@ function createScene() {
   createLights(scene);
   createHeroDude(scene); // we added the creation of a follow camera for the dude
   loadSounds(scene);
-  createScoreboard();
+  // createScoreboard();
   return scene;
 }
 
@@ -432,7 +440,7 @@ tank.scaling = new BABYLON.Vector3(5, 5, 5);
                       score += 10;
                       document.getElementById("score").innerText = "Score : "+ score;
                       console.log(score)
-                      updateScore(score);
+                      // updateScore(score);
                       //cannonball.dispose(); // don't work properly why ? Need for a closure ?
                   }
               ));
@@ -518,30 +526,30 @@ tank.scaling = new BABYLON.Vector3(5, 5, 5);
   }
 }
 
-function createScoreboard(){
-  outputplane = BABYLON.Mesh.CreatePlane("outputplane", 20, scene, false);
-  outputplane.billboardMode = BABYLON.AbstractMesh.BILLBOARDMODE_ALL;
-  outputplane.material = new BABYLON.StandardMaterial("outputplane", scene);
-  outputplane.position = new BABYLON.Vector3(0, 45, 7);
-  outputplane.scaling.x = 4;
-  outputplane.scaling.z= 6;
-  outputplane.rotate(BABYLON.Axis.Z, 5 * Math.PI / 180);
+// function createScoreboard(){
+//   outputplane = BABYLON.Mesh.CreatePlane("outputplane", 20, scene, false);
+//   outputplane.billboardMode = BABYLON.AbstractMesh.BILLBOARDMODE_ALL;
+//   outputplane.material = new BABYLON.StandardMaterial("outputplane", scene);
+//   outputplane.position = new BABYLON.Vector3(0, 45, 7);
+//   outputplane.scaling.x = 4;
+//   outputplane.scaling.z= 6;
+//   outputplane.rotate(BABYLON.Axis.Z, 5 * Math.PI / 180);
 
-  outputplaneTexture = new BABYLON.DynamicTexture("dynamic texture", 512, scene, true);
-  outputplane.material.diffuseTexture = outputplaneTexture;
-  outputplane.material.specularColor = new BABYLON.Color3(0, 0, 0);
-  outputplane.material.emissiveColor = new BABYLON.Color3(1, 1, 1);
-  outputplane.material.backFaceCulling = false;
-  context2D = outputplaneTexture.getContext();
+//   outputplaneTexture = new BABYLON.DynamicTexture("dynamic texture", 512, scene, true);
+//   outputplane.material.diffuseTexture = outputplaneTexture;
+//   outputplane.material.specularColor = new BABYLON.Color3(0, 0, 0);
+//   outputplane.material.emissiveColor = new BABYLON.Color3(1, 1, 1);
+//   outputplane.material.backFaceCulling = false;
+//   context2D = outputplaneTexture.getContext();
 
-  updateScore("0");
+//   updateScore("0");
 
-}
+// }
 
-function updateScore(data) {
-  context2D.clearRect(0, 200, 512, 512);
-  outputplaneTexture.drawText(data, null, 380, "bold 220px verdana", "white", null);
-} 
+// function updateScore(data) {
+//   context2D.clearRect(0, 200, 512, 512);
+//   outputplaneTexture.drawText(data, null, 380, "bold 220px verdana", "white", null);
+// } 
 
 function createHeroDude(scene) {
   // load the Dude 3D animated model
